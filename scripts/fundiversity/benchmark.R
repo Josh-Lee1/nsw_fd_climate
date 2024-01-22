@@ -1,10 +1,14 @@
 library(tidyverse)
-library(FD)
+library(fundiversity)
+# I am taking code from the FD calculations here as setting up the matrices are similar, 
+#only without abundances
 
 #get the cleaned floristics data
 obs <- read.csv("data/processed/cleaned_benchmark_data.csv") %>% 
   filter(native_anywhere_in_aus == "considered native to Australia by APC" |
            native_anywhere_in_aus == "Native")
+
+
 
 ##get a species list for nativeness and trait filtering 
 sp_list <- obs %>% 
@@ -47,15 +51,31 @@ sites <- obs %>%
   summarise(cover = sum(CoverScore)) %>%
   ungroup() %>%
   filter(species %in% targ) %>%
-  arrange(species) %>%
+  arrange(species)%>%
+  mutate(cover = ifelse(cover != 0, 1, cover)) %>%
   pivot_wider(names_from = species,
               values_from = cover,
               values_fill = 0) %>%
   column_to_rownames(var = "CensusKey")
 
+#make into sparse matrix for faster computing
+sites_matrix<- as.matrix(sites)
+sparse_site_sp <- Matrix::Matrix(sites_matrix, sparse = TRUE)
+
+
 #calculate fd
-fd <- dbFD(gap_filled_diaz_traits, sites, w.abun = FALSE)
-FD <- fd %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "site")
- write.csv(FD, "data/processed/FD/bnfs_benchmark_no_abund_weight.csv")
+#may need this to run the code
+options(future.globals.maxSize= 1417*1024^2)
+
+fric<- fd_fric(gap_filled_diaz_traits, sparse_site_sp)
+feve<- fd_feve(gap_filled_diaz_traits, sparse_site_sp)
+fdis<- fd_fdis(gap_filled_diaz_traits, sparse_site_sp)
+fdiv<- fd_fdiv(gap_filled_diaz_traits, sparse_site_sp)
+frao<- fd_raoq(gap_filled_diaz_traits, sparse_site_sp)
+
+data_frames <- list(fric, feve, fdis, fdiv, frao)  # Create a list of data frames
+result <- Reduce(function(x, y) left_join(x, y, by = "site"), data_frames)
+
+
+ write.csv(result, "data/processed/FD/fundiversity/fundiv_metrics_benchmarks.csv")
+ 

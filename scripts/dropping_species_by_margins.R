@@ -25,9 +25,12 @@ plot_data <- read.csv("data/processed/cleaned_benchmark_data.csv") %>%
 #plot data with extinction (rain and temp)
 future_plot_data <- plot_data %>% 
   filter(!(tas_2075_4.5 >= p98_tas_historical |
-           tas_2075_4.5 <= p02_tas_historical|
-           precip_2075_4.5 >= p98_precip_historical | 
-           precip_2075_4.5 <= p02_precip_historical)) %>% 
+           tas_2075_4.5 <= p02_tas_historical
+           # |
+           # precip_2075_4.5 >= p98_precip_historical | 
+           # precip_2075_4.5 <= p02_precip_historical
+           )
+         ) %>% 
   group_by(CensusKey) %>% 
   mutate(future_sp_richness = n_distinct(species)) %>% 
   ungroup() %>% 
@@ -39,4 +42,5 @@ future_plot_data_for_fd <- future_plot_data %>%
            native_anywhere_in_aus == "Native") %>% 
   left_join(traits)
 
-write.csv(future_plot_data_for_fd, "data/processed/FD/future_plot_data_for_fd.csv", row.names = FALSE)
+saveRDS(future_plot_data_for_fd, "data/processed/FD/future_tas_only_plot_data_for_fd.rds")
+#write.csv(future_plot_data_for_fd, "data/processed/FD/future_plot_data_for_fd.csv", row.names = FALSE)
