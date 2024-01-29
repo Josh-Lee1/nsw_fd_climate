@@ -58,6 +58,14 @@ sites <- obs %>%
               values_fill = 0) %>%
   column_to_rownames(var = "CensusKey")
 
+#get species richness to join on the end
+obs %>% 
+  group_by(CensusKey) %>% 
+  summarise(sp_richness = n_distinct(apc_name)) %>% 
+  rename(site = "CensusKey") -> sp_rich
+
+ # write.csv(sp_rich, "data/processed/FD/fundiversity/benchmark_sp_richness.csv", row.names = FALSE)
+
 #make into sparse matrix for faster computing
 sites_matrix<- as.matrix(sites)
 sparse_site_sp <- Matrix::Matrix(sites_matrix, sparse = TRUE)
