@@ -15,15 +15,18 @@ censuslist <- read.csv("data/raw/bionet_flora_survey/CensusList.csv") %>%
   right_join(veg_condition, by = "CensusID")
 
 site_info_with_fd <- censuslist %>% 
-  select(CensusID, Census.Key, Elevation..m., IBRA.Subregion, IBRA7:Class.IBRA) %>% 
+  select(CensusID, Census.Key, Elevation..m., IBRA.Subregion, IBRA7:Class.IBRA) %>%
   distinct() %>% 
   rename(site = "Census.Key") %>% 
   left_join(bench_fd, by = "site")
 
+
+# write.csv(site_info_with_fd, "data/processed/FD/fundiversity/fundiv_bench_with_form.csv", row.names = FALSE)
+
 # Get the means for each fd metric for each grouping (class by bioregion). 
 
 fd_benchmarks_grouped_calculated <- site_info_with_fd %>%
-  group_by(Class.IBRA) %>% 
+  group_by(VegetationFormation) %>% 
   reframe(count = n(),
             mean_fric = mean(FRic, na.rm = TRUE),
             max_fric = max(FRic, na.rm = TRUE),
@@ -44,6 +47,23 @@ fd_benchmarks_grouped_calculated[is.na(fd_benchmarks_grouped_calculated)]<-NA
 #make pointrange plot
 fd_benchmarks_grouped_calculated %>% 
   arrange(mean_fric) %>%
-  mutate(Class.IBRA=factor(Class.IBRA, levels=Class.IBRA)) %>%  
-  ggplot(aes(Class.IBRA, mean_fric)) +
-  geom_pointrange(ymin = fd_benchmarks_grouped_calculated$min_fric, ymax = fd_benchmarks_grouped_calculated$max_fric)
+  mutate(VegetationFormation=factor(VegetationFormation, levels=VegetationFormation)) %>%  
+  ggplot(aes(VegetationFormation, mean_fric)) +
+  geom_pointrange(ymin = fd_benchmarks_grouped_calculated$min_fric, ymax = fd_benchmarks_grouped_calculated$max_fric) +
+  coord_flip()
+
+#
+
+p <- site_info_with_fd %>%
+  group_by(VegetationFormation) %>% 
+  summarise(p10 = quantile(FRic, 0.10, na.rm = TRUE),
+            p90 = quantile(FRic, 0.90, na.rm = TRUE),
+            median = median(FRic, na.rm = TRUE),
+            sd = sd(FRic, na.rm = TRUE))
+
+p %>%
+  arrange(median) %>%
+  mutate(VegetationFormation=factor(VegetationFormation, levels=VegetationFormation)) %>%  
+  ggplot(aes(VegetationFormation, median)) +
+  geom_pointrange(ymin = (p$p10), ymax = (p$p90)) +
+  coord_flip()
