@@ -47,5 +47,5 @@ bct_fd <- read.csv("data/processed/BCT_fundiversity/fundiv_metrics_bct_mon_sites
   left_join(fix_abreviations, by = "MP.ID") %>% 
   select(GlobalID:sp_richness, MP.ID, vegetation_formation, everything())
   
-# write.csv(bct_fd, "data/processed/BCT_fundiversity/BCT_fundiv_w_form.csv", row.names = FALSE)
+# write_csv(bct_fd, "data/processed/BCT_fundiversity/BCT_fundiv_w_form.csv")
 
