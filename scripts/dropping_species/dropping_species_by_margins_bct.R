@@ -17,7 +17,7 @@ traits <- read.csv("data/raw/BHPMF_diaz6_v2.csv") %>%
 #plot data and join to site and species climate info
 ##quickly match to APC first
 bct_species_list <- read.csv("data/raw/bct_plot_metadata/speciesobs.csv") %>% 
-  select(original_name = displayname)
+  rename(original_name = displayname)
   
 lookup <- create_taxonomic_update_lookup(bct_species_list$original_name)
 sp_list_withapc<- dplyr::left_join(bct_species_list, lookup)
@@ -30,6 +30,18 @@ plot_data <- sp_list_withapc %>%
   group_by(ParentGlobalID) %>% 
   mutate(original_sp_richness = n_distinct(species)) %>% 
   ungroup()
+
+#drop non-natives and join to traits as previous for FD calculation
+native_or_not <- native_anywhere_in_australia(plot_data$species, resources = load_taxonomic_resources()) %>% 
+  distinct()
+
+#save this as cleaned BCT data
+native_bct_with_margins <- plot_data %>% 
+  left_join(native_or_not, by = "species") %>% 
+  filter(native_anywhere_in_aus == "TRUE") %>% 
+  left_join(traits)
+
+# write_rds(native_bct_with_margins, "data/processed/BCT_fundiversity/native_bct_with_margins.rds")
 
 #plot data with extinction (rain and temp)
 future_plot_data <- plot_data %>% 
@@ -45,9 +57,6 @@ future_plot_data <- plot_data %>%
   ungroup() %>% 
   mutate(richness_loss = original_sp_richness - future_sp_richness)
 
-#drop non-natives and join to traits as previous for FD calculation
-native_or_not <- native_anywhere_in_australia(future_plot_data$species, resources = load_taxonomic_resources()) %>% 
-  distinct()
 
 future_plot_data_for_fd <- future_plot_data %>% 
   left_join(native_or_not, by = "species") %>% 
