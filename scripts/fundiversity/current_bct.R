@@ -2,7 +2,9 @@ library(tidyverse)
 library(fundiversity)
 
 #get the cleaned floristics data
-obs <- readRDS("data/processed/BCT_fundiversity/native_bct_with_margins.rds")
+obs <- readRDS("data/processed/BCT_fundiversity/native_bct_with_margins.rds") %>% 
+  select(-c(geometry)) %>% 
+  as.data.frame()
 
 
 ##get a species list for nativeness and trait filtering 
@@ -55,6 +57,7 @@ sites <- obs %>%
 
 #get species richness to join on the end
 obs %>% 
+  as.data.frame() %>% 
   group_by(ParentGlobalID) %>% 
   summarise(sp_richness = n_distinct(species)) %>% 
   rename(site = "ParentGlobalID") -> sp_rich
@@ -74,7 +77,7 @@ fdis<- fd_fdis(gap_filled_diaz_traits, sparse_site_sp)
 fdiv<- fd_fdiv(gap_filled_diaz_traits, sparse_site_sp)
 frao<- fd_raoq(gap_filled_diaz_traits, sparse_site_sp)
 
-data_frames <- list(fric, feve, fdis, fdiv, frao)  # Create a list of data frames
+data_frames <- list(sp_rich, fric, feve, fdis, fdiv, frao)  # Create a list of data frames
 result <- Reduce(function(x, y) left_join(x, y, by = "site"), data_frames)
 
 

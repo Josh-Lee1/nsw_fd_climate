@@ -2,7 +2,8 @@ library(tidyverse)
 library(fundiversity)
 
 #get the plot data with removed 
-obs <- readRDS("data/processed/BCT_fundiversity/future_tas_only_plot_data_for_fd_bct.rds") 
+obs <- readRDS("data/processed/BCT_fundiversity/future_tas_only_plot_data_for_fd_bct.rds") %>%
+  select(-c(geometry))
 
 #wrangle traits for FD package
 traits <- obs %>% 
@@ -44,6 +45,11 @@ sites <- obs %>%
               values_fill = 0) %>%
   column_to_rownames(var = "ParentGlobalID")
 
+#get species richness to join on the end
+obs %>% 
+  group_by(ParentGlobalID) %>% 
+  summarise(sp_richness = n_distinct(species)) %>% 
+  rename(site = "ParentGlobalID") -> sp_rich
 
 #make into sparse matrix for faster computing
 sites_matrix<- as.matrix(sites)
@@ -61,7 +67,7 @@ fdis<- fd_fdis(traits, sparse_site_sp)
 fdiv<- fd_fdiv(traits, sparse_site_sp)
 frao<- fd_raoq(traits, sparse_site_sp)
 
-data_frames <- list(fric, feve, fdis, fdiv, frao)  # Create a list of data frames
+data_frames <- list(sp_rich, fric, feve, fdis, fdiv, frao)  # Create a list of data frames
 result <- Reduce(function(x, y) left_join(x, y, by = "site"), data_frames)
 
 

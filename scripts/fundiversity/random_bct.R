@@ -2,52 +2,50 @@ library(tidyverse)
 library(fundiversity)
 
 #get the extinction results and compare #species lost
-fd_extinction <- read.csv("data/processed/FD/fd_after_extinctions.csv") %>% 
+fd_extinction <- read.csv("data/processed/FD/fundiversity/fundiv_metrics_extinction_bct.csv") %>% 
   select(-c(X)) %>% 
   mutate(scenario = "future_loss")
-fd_original <- read.csv("data/processed/FD/bnfs_benchmark_plots_native.csv") %>% 
+fd_original <- read.csv("data/processed/FD/fundiversity/fundiv_metrics_current_bct.csv") %>% 
   select(-c(X)) %>% 
   mutate(scenario = "current")
 
 srich_change <- fd_extinction %>% 
-  select(site, nbsp_ex = nbsp) %>% 
+  select(site, sprich_ex = sp_richness) %>% 
   left_join(fd_original) %>% 
-  mutate(srich_change = nbsp-nbsp_ex) %>% 
-  select(CensusKey = site, nbsp_ex, srich_change)
+  mutate(sprich_change = sp_richness-sprich_ex) %>% 
+  select(ParentGlobalID = site, sprich_ex, sprich_change)
 
-#get original bnfs data and drop species randomly 
-original_plot_data <- read.csv("data/processed/cleaned_benchmark_data.csv") %>% 
-  select(-c(X))  %>% 
-  filter(native_anywhere_in_aus == "considered native to Australia by APC" |
-           native_anywhere_in_aus == "Native") %>%
-  group_by(CensusKey, apc_name) %>%
-  summarise(cover = sum(CoverScore)) %>%
+#get original data and drop species randomly 
+original_plot_data <- readRDS("data/processed/BCT_fundiversity/native_bct_with_margins.rds") %>% 
+  select(-c(geometry)) %>% 
+  group_by(ParentGlobalID, species) %>%
+  summarise(cover = sum(Cover..)) %>%
   ungroup() %>% 
   left_join(srich_change) %>% 
-  filter(!is.na(srich_change))%>% 
-  group_by(CensusKey) %>% 
-  mutate(sp_before_sample = n_distinct(apc_name)) %>% 
+  group_by(ParentGlobalID) %>% 
+  mutate(sp_before_sample = n_distinct(species)) %>% 
   ungroup()
 
-# writing a function for group specific sample sizes. there might be a better way to do this...
+# get group specific sample sizes
 n_target_sp <- original_plot_data %>% 
-  select(CensusKey, nbsp_ex) %>% 
+  select(ParentGlobalID, sprich_ex) %>% 
   distinct()
 
 nested_plot_data <- original_plot_data %>%
-  group_by(CensusKey) %>%   # prep for work by Species
+  group_by(ParentGlobalID) %>%   # prep for work by Species
   nest() %>%              # --> one row per Species
   ungroup() %>% # add sample sizes
-  left_join(n_target_sp)
+  left_join(n_target_sp) %>% 
+  filter(!is.na(sprich_ex))
 
 sampled_plot_data <- nested_plot_data %>%
-  mutate(samp = map2(data, nbsp_ex, sample_n))
+  mutate(samp = map2(data, sprich_ex, sample_n))
 
 plot_data_random_drop <- sampled_plot_data %>% 
-  select(-data, -nbsp_ex) %>%
+  select(-data, -sprich_ex) %>%
   unnest(samp) %>% 
-  group_by(CensusKey) %>% 
-  mutate(sp_after_sample = n_distinct(apc_name)) %>% 
+  group_by(ParentGlobalID) %>% 
+  mutate(sp_after_sample = n_distinct(species)) %>% 
   ungroup()
 
 #prepare for FD calculations
@@ -56,12 +54,12 @@ library(FD)
 #get traits
 traits <- read.csv("data/raw/BHPMF_diaz6_v2.csv") %>% 
   select(-c(X)) %>% 
-  mutate(apc_name = str_replace(species, "_", " ")) 
+  mutate(species = str_replace(species, "_", " ")) 
 
 #wrangle traits for FD package
 traits <- plot_data_random_drop %>% 
-  left_join(traits, by = "apc_name") %>% 
-  select(species = apc_name,
+  left_join(traits, by = "species") %>% 
+  select(species,
          log10_plant_height,
          log10_wood_density,
          log10_leaf_area,
@@ -82,12 +80,12 @@ targ <- target_list$species
 #wrangle sites for FD package
 
 sites <- plot_data_random_drop %>%
-  select(CensusKey,
-         species = apc_name,
+  select(ParentGlobalID,
+         species,
          cover)  %>%
   drop_na() %>%
   distinct() %>%
-  group_by(CensusKey, species) %>%
+  group_by(ParentGlobalID, species) %>%
   summarise(cover = sum(cover)) %>%
   ungroup() %>%
   filter(species %in% targ) %>%
@@ -97,7 +95,7 @@ sites <- plot_data_random_drop %>%
   pivot_wider(names_from = species,
               values_from = cover,
               values_fill = 0) %>%
-  column_to_rownames(var = "CensusKey")
+  column_to_rownames(var = "ParentGlobalID")
 
 
 #make into sparse matrix for faster computing
@@ -119,7 +117,7 @@ data_frames <- list(fric, feve, fdis, fdiv, frao)  # Create a list of data frame
 result <- Reduce(function(x, y) left_join(x, y, by = "site"), data_frames)
 
 
-write.csv(result, "data/processed/FD/fundiversity/fundiv_metrics_random.csv")
+write.csv(result, "data/processed/FD/fundiversity/fundiv_metrics_random_bct.csv")
 
 
 
