@@ -14,6 +14,19 @@ ala_all<- read.csv("data/processed/ala_all.csv") %>%
   filter(!is.na(decimalLongitude)) %>% 
   st_as_sf(coords = c("decimalLongitude", "decimalLatitude"))
 
+# #quick exercise to see how many natives are in here
+# library(ausflora)
+# list<- read.csv("data/processed/ala_all.csv") %>% 
+#   filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
+#   filter(!is.na(decimalLongitude)) %>% 
+#   dplyr::select(species) %>% 
+#   distinct()
+# natives <- native_anywhere_in_australia(list$species)
+# natives_only <- natives %>% 
+#   filter(native_anywhere_in_aus == "TRUE") %>% 
+#   left_join(ala_all, by = "species")
+
+
 # Function to extract data from a raster file for points
 extract_raster_data <- function(raster_file, points) {
   extracted_data <- raster::extract(raster_file, points)
