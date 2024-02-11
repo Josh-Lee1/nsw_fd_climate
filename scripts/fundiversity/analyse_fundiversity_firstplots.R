@@ -47,12 +47,12 @@ ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, abs(FDis_change), colour = scenario)
   theme_bw()
 
 #make a three panel plot
-a <- ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, FRic_prop_change, color = scenario)) +
+a <- ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, FRic_change, color = scenario)) +
   geom_point(alpha = 0.7, size = 0.2) +
   geom_smooth(method = "lm", se = TRUE, linewidth = 1.2) +
   xlab("% species richness loss") +
   ylab("% functional richness loss") +
-  ylim(0, 1) +
+  # ylim(0, 1) +
   theme_bw()+
   theme(legend.title=element_blank()) + 
   ggtitle("a") 
