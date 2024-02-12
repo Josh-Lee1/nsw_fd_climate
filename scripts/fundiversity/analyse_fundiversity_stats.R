@@ -43,19 +43,39 @@ fd_dfs_fundiv <- rbind(fd_extinction, fd_random) %>%
   mutate(Difference_changein_FEve_prop = c(NA, diff(FEve_prop_change)))%>%
   mutate(Difference_changein_FDis_prop = c(NA, diff(FDis_prop_change)))
 
-par(mfrow = c(1, 3))
-ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_Fric_prop)) +
-  geom_point()
-ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_FEve)) +
-  geom_point()
-ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_FDis)) +
-  geom_point()
+a <- ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_Fric)) +
+  geom_point() +
+  theme_bw() +
+  xlab("Proportion of species lost") +
+  ylab("Divergence from random functional richness loss") +
+  ggtitle("a")
+b <- ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_FEve)) +
+  geom_point()+
+  theme_bw() +
+  xlab("Proportion of species lost") +
+  ylab("Divergence from random functional evenness loss") +
+  ggtitle("b")
+c <- ggplot(fd_dfs_fundiv, aes(nbsp_prop_change, Difference_changein_FDis)) +
+  geom_point()+
+  theme_bw() +
+  xlab("Proportion of species lost") +
+  ylab("Divergence from random functional dispersion loss") +
+  ggtitle("c")
+
+a/b/c
+
+ggplot(fd_dfs_fundiv, aes(scenario, FRic)) +
+  geom_boxplot()
 
 rich.aov <- aov(FEve ~  scenario, data = fd_dfs_fundiv)
 summary(rich.aov)
 par(mfrow = c(1, 2))
 hist(rich.aov$residuals)
 plot(rich.aov, which = 2)
+
+t.test(fd_dfs_fundiv$Difference_changein_Fric)
+t.test(fd_dfs_fundiv$Difference_changein_FDis)
+t.test(fd_dfs_fundiv$Difference_changein_FEve)
 
 
 ########
@@ -64,7 +84,7 @@ plot_clim <- read.csv("data/processed/bnfs_plots_with_current_future_climate.csv
   rename(site = "CensusKey") %>% 
   right_join(fd_dfs_fundiv)
 
-ggplot(plot_clim, aes(tas_historical, FRic_change, colour = scenario)) +
+ggplot(plot_clim, aes(precip_historical, Difference_changein_Fric_prop)) +
   geom_point() +
   geom_smooth(method = lm)
 
