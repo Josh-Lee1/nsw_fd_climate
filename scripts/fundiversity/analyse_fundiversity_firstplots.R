@@ -107,10 +107,11 @@ fd_with_info <- fd_dfs_fundiv %>%
                                include.lowest = TRUE))
   
 
-ggplot(fd_with_info, aes(nbsp_prop_change, VegetationFormation, fill = VegetationFormation)) +
-  geom_boxplot() +
+ggplot(fd_with_info, aes(precip_change, FRic_change, colour = VegetationFormation)) +
+  geom_point() +
   theme(legend.position = NA) +
   theme_bw()
+
 
 ####rain and temp
 

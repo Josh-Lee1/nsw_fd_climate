@@ -104,12 +104,119 @@ bench <- read.csv("data/processed/FD/fundiversity/fundiv_bench_with_form.csv") %
   select(site, vegetation_formation = "VegetationFormation") %>% 
   bind_rows(bct)
 
-df1 <- left_join(df1, bench, by = "site")
+df1 <- left_join(df1, bench, by = "site") %>% 
+  filter(scenario == "extinction")
 
-ggplot(data=subset(df1, !is.na(vegetation_formation)), aes(vegetation_formation, Difference, colour = source)) + 
+ggplot(data=subset(df1, !is.na(vegetation_formation)), aes(vegetation_formation, FRic_change, colour = source)) + 
   geom_boxplot()+
-  ylab("Difference in Functional Richness between random and climate species loss") +
+  ylab("") +
   xlab("")+ 
   coord_flip()+
   theme_bw()
+##########################
+
+df1 %>% 
+  group_by(vegetation_formation, source) %>% 
+  summarise(
+    n = n(),
+    Mean_sric = mean(nbsp_prop_change, na.rm = TRUE),
+    SD_sric = sd(nbsp_prop_change, na.rm = TRUE),
+    Mean_fric = mean(FRic_change, na.rm = TRUE),
+    SD_fric = sd(FRic_change, na.rm = TRUE),
+    Mean_feve = mean(FEve_change, na.rm = TRUE),
+    SD_feve = sd(FEve_change, na.rm = TRUE),
+    Mean_fdis = mean(FDis_change, na.rm = TRUE),
+    SD_fdis = sd(FDis_change, na.rm = TRUE)
+  ) %>% 
+  filter(!is.na(vegetation_formation)) %>% 
+  filter(vegetation_formation != "Saline wetlands",
+           vegetation_formation != "Arid shrublands (Acacia subformation)",
+           vegetation_formation != "Alpine complex")-> summary
+
+##stats
+library(lme4)
+all.ft <- lmer(nbsp_change ~ source + (1 | vegetation_formation), data = df1, REML = F)
+summary(all.ft)
+all.ft.0 <- lmer(nbsp_change ~ (1 | vegetation_formation), data = df1, REML = F)
+anova(all.ft.0, all.ft)
+confint(all.ft)
+
+qqnorm(residuals(all.ft))
+scatter.smooth(residuals(all.ft) ~ fitted(all.ft))
+
+
+
+
+
+#figs
+a <- summary %>% 
+  ggplot(aes(x = vegetation_formation, y = Mean_sric, colour = as.factor(source))) +
+  geom_pointrange(
+    aes(ymin = Mean_sric - SD_sric, ymax = Mean_sric + SD_sric),
+    position = position_dodge(0.5),
+    size = 1
+  ) +
+  labs(
+    title = "a",
+    x = "Vegetation Formation",
+    y = "Change in proportion of Species Richness"
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+b <- summary %>% 
+  ggplot(aes(x = vegetation_formation, y = Mean_fric, colour = as.factor(source))) +
+  geom_pointrange(
+    aes(ymin = Mean_fric - SD_fric, ymax = Mean_fric + SD_fric),
+    position = position_dodge(0.5),
+    size = 1
+  ) +
+  labs(
+    title = "b",
+    x = "Vegetation Formation",
+    y = "Change in Functional Richness"
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+c <- summary %>% 
+  ggplot(aes(x = vegetation_formation, y = Mean_feve, colour = as.factor(source))) +
+  geom_pointrange(
+    aes(ymin = Mean_feve - SD_feve, ymax = Mean_feve + SD_feve),
+    position = position_dodge(0.5),
+    size = 1
+  ) +
+  labs(
+    title = "c",
+    x = "Vegetation Formation",
+    y = "Change in Functional Evenness"
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+d <- summary %>% 
+  ggplot(aes(x = vegetation_formation, y = Mean_fdis, colour = as.factor(source))) +
+  geom_pointrange(
+    aes(ymin = Mean_fdis - SD_fdis, ymax = Mean_fdis + SD_fdis),
+    position = position_dodge(0.5),
+    size = 1
+  ) +
+  labs(
+    title = "d",
+    x = "Vegetation Formation",
+    y = "Change in Functional Dispersion"
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+library(patchwork)
+
+a + b + c +d
+
+
+
 
