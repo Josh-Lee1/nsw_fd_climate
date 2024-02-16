@@ -104,16 +104,70 @@ fd_with_info <- fd_dfs_fundiv %>%
   mutate(temp_percentile = cut(tas_historical , 
                                quantile(tas_historical , probs = seq(0, 1, 0.1), na.rm = TRUE), 
                                labels = seq(0, 90, 10), 
-                               include.lowest = TRUE))
+                               include.lowest = TRUE)) %>% 
+  filter(scenario == "extinction") %>% 
+  mutate(abs_FEve_change = abs(FEve_change),
+         abs_FDis_change = abs(FDis_change))
   
-
-ggplot(fd_with_info, aes(precip_change, FRic_change, colour = VegetationFormation)) +
+  
+ric <- fd_with_info %>% 
+  ggplot(aes(tas_historical, FRic_change)) +
+  geom_point() +
+  theme(legend.position = NA) +
+  theme_bw() 
+eve <- fd_with_info %>% 
+  ggplot(aes(tas_historical, abs(FEve_change))) +
+  geom_point() +
+  theme(legend.position = NA) +
+  theme_bw()
+dis <- fd_with_info %>% 
+  ggplot(aes(tas_historical, abs(FDis_change))) +
+  geom_point() +
+  theme(legend.position = NA) +
+  theme_bw()
+ricp <- fd_with_info %>% 
+  ggplot(aes(precip_historical, FRic_change)) +
+  geom_point() +
+  theme(legend.position = NA) +
+  theme_bw() 
+evep <- fd_with_info %>% 
+  ggplot(aes(precip_historical, abs(FEve_change))) +
+  geom_point() +
+  theme(legend.position = NA) +
+  theme_bw()
+disp <- fd_with_info %>% 
+  ggplot(aes(precip_historical, abs(FDis_change))) +
   geom_point() +
   theme(legend.position = NA) +
   theme_bw()
 
 
-####rain and temp
+library(patchwork)
+ric + eve + dis +ricp + evep + disp 
+
+ggplot(fd_with_info, aes(tas_historical, tas_change)) +
+  geom_point()
+ggplot(fd_with_info, aes(precip_historical, precip_change)) +
+  geom_point()
+
+
+##do the stats
+clim_mod <- lm(nbsp_change ~ tas_historical + precip_historical, data = fd_with_info)
+summary(clim_mod)
+
+plot(clim_mod, which = 1)
+hist(clim_mod$residuals) 
+plot(clim_mod, which = 2)
+
+
+library(relaimpo)
+calc.relimp(clim_mod)
+
+
+
+
+
+####rain and temp looking at percentiles 
 
 fd_with_info %>% 
   filter(!is.na(precip_historical)) %>% 

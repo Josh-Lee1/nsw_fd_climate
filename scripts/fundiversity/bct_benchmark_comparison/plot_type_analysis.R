@@ -28,4 +28,3 @@ all.ft <- lmer(sp_richness ~ plot_type + (1 | vegetation_formation), data = all,
 all.ft.0 <- lmer(sp_richness ~ (1 | vegetation_formation), data = all, REML = F)
 anova(all.ft.0, all.ft)
 confint(all.ft)
-
